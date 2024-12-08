@@ -1,0 +1,7 @@
+---
+# required vars to execute azure cli role, add the additional varsfor your custom tasks
+required_vars:
+  - SANDBOX_ARM_CLIENT_ID
+  - SANDBOX_ARM_CLIENT_SECRET
+  - SANDBOX_ARM_TENANT_ID
+  - SANDBOX_ARM_SUBSCRIPTION_ID

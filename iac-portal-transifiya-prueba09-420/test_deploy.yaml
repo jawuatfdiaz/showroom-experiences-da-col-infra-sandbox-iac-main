@@ -1,0 +1,99 @@
+- name: Test deploy
+  hosts: localhost
+  connection: local
+  tasks:
+  - name: Set current folder name
+    set_fact:
+      currentFolderName: "{{ playbook_dir | basename }}"
+
+  - name: Set subscriptionId
+    set_fact:
+      github_composed_repo_name: "{{ currentFolderName }}_{{ ansible_date_time.iso8601_basic_short }}"
+
+  - name: Set env to playbvook vars
+    set_fact:
+      # In order to include adittional parameters from portal use VAR_ as prefix and the name of the parameter
+      # Parameters from forms in portal iac
+      SETUP_DEPLOYMENT_REQUEST_COUNTRY: "{{ lookup('env', 'VAR_country') }}"
+      SETUP_DEPLOYMENT_REQUEST_COST_CENTER: "{{ lookup('env', 'VAR_costCenter') }}"
+      SETUP_DEPLOYMENT_REQUEST_CUSTOMER: "{{ lookup('env', 'VAR_customer') }}"
+      SETUP_DEPLOYMENT_REQUEST_REQUESTER: "{{ lookup('env', 'VAR_requester') }}"
+      SETUP_DEPLOYMENT_REQUEST_APPROVER: "{{ lookup('env', 'VAR_approver') }}"
+      SETUP_DEPLOYMENT_REQUEST_REPOSITORY_SOURCE_NAME: "{{ lookup('env', 'VAR_repositorySourceName') }}"
+      SETUP_DEPLOYMENT_REQUEST_REPOSITORY_TARGET_BRANCH_REF: "{{ lookup('env', 'VAR_repositoryTargetBranchRef') }}"
+      SETUP_POC_ID: "{{ lookup('env', 'VAR_id') }}"
+      # Notification to portal from secrets in action
+      SETUP_NOTIFICATION_PARAM_CODE: "{{ lookup('env', 'NOTIFICATION_PARAM_CODE') }}"
+      SETUP_NOTIFICATION_URL: "{{ lookup('env', 'NOTIFICATION_URL') }}"
+      # Azure Auth from secrets in action
+      SETUP_SANDBOX_ARM_CLIENT_ID: "{{ lookup('env', 'ARM_CLIENT_ID') }}"
+      SETUP_SANDBOX_ARM_CLIENT_SECRET: "{{ lookup('env', 'ARM_CLIENT_SECRET') }}"
+      SETUP_SANDBOX_ARM_TENANT_ID: "{{ lookup('env', 'ARM_TENANT_ID') }}"
+      SETUP_SANDBOX_ARM_SUBSCRIPTION_ID: "{{ lookup('env', 'ARM_SUBSCRIPTION_ID') }}"
+
+  - name: Creates test directory
+    file:
+      path: "{{ playbook_dir }}/roles/terraform_template/files/test/azure-tf"
+      recurse: true
+      force: true
+      state: directory
+
+  - name: Create variables.tf file
+    template:
+      src: "{{ playbook_dir }}/roles/terraform_template/templates/variables.tf.j2"
+      dest: "{{ playbook_dir }}/roles/terraform_template/files/test/azure-tf/variables.tf"
+      force: true
+    vars:
+      COST_CENTER: "MKT-TESTDEPLOY-01"
+      OWNER_POC: "UsernameTest"
+      OWNER_DEPLOY: "UsernameTest"
+      POC_ID: "{{ github_composed_repo_name }}"
+      DEPLOY_ID: "{{ github_composed_repo_name }}"
+
+  - name: Set subscriptionId
+    set_fact:
+      SANDBOX_ARM_SUBSCRIPTION_ID: "{{ SETUP_SANDBOX_ARM_SUBSCRIPTION_ID }}"
+
+  - name: Create provider.tf file
+    template:
+      src: "{{ playbook_dir }}/roles/terraform_template/templates/provider.tf.j2"
+      dest: "{{ playbook_dir }}/roles/terraform_template/files/test/azure-tf/provider.tf"
+      force: true
+    vars:
+      DEPLOY_ID: "{{ currentFolderName }}-test01"
+
+  - name: Copy files from template to test folder
+    copy:
+      src: "{{ playbook_dir }}/roles/terraform_template/files/azure-tf/"
+      dest: "{{ playbook_dir }}/roles/terraform_template/files/test/azure-tf"
+      force: true
+
+  - name: Terraform init
+    command: terraform init
+    args:
+      chdir: "{{ playbook_dir }}/roles/terraform_template/files/test/azure-tf"
+    environment:
+      ARM_CLIENT_ID: "{{ SETUP_SANDBOX_ARM_CLIENT_ID }}"
+      ARM_CLIENT_SECRET: "{{ SETUP_SANDBOX_ARM_CLIENT_SECRET }}"
+      ARM_SUBSCRIPTION_ID: "{{ SETUP_SANDBOX_ARM_SUBSCRIPTION_ID }}"
+      ARM_TENANT_ID: "{{ SETUP_SANDBOX_ARM_TENANT_ID }}"
+
+  - name: Terraform plan
+    command: terraform plan
+    args:
+      chdir: "{{ playbook_dir }}/roles/terraform_template/files/test/azure-tf"
+    environment:
+      ARM_CLIENT_ID: "{{ SETUP_SANDBOX_ARM_CLIENT_ID }}"
+      ARM_CLIENT_SECRET: "{{ SETUP_SANDBOX_ARM_CLIENT_SECRET }}"
+      ARM_SUBSCRIPTION_ID: "{{ SETUP_SANDBOX_ARM_SUBSCRIPTION_ID }}"
+      ARM_TENANT_ID: "{{ SETUP_SANDBOX_ARM_TENANT_ID }}"
+
+  - name: Terraform apply
+    command: terraform apply -auto-approve
+    args:
+      chdir: "{{ playbook_dir }}/roles/terraform_template/files/test/azure-tf"
+    environment:
+      ARM_CLIENT_ID: "{{ SETUP_SANDBOX_ARM_CLIENT_ID }}"
+      ARM_CLIENT_SECRET: "{{ SETUP_SANDBOX_ARM_CLIENT_SECRET }}"
+      ARM_SUBSCRIPTION_ID: "{{ SETUP_SANDBOX_ARM_SUBSCRIPTION_ID }}"
+      ARM_TENANT_ID: "{{ SETUP_SANDBOX_ARM_TENANT_ID }}"
