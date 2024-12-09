@@ -1,0 +1,40 @@
+- name: Download Terraform
+  get_url:
+    url: https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip
+    dest: /tmp/terraform.zip
+
+- name: Unzip Terraform
+  unarchive:
+    src: /tmp/terraform.zip
+    dest: /usr/local/bin
+    remote_src: true
+
+- name: Remove zip file
+  file:
+    path: /tmp/terraform.zip
+    state: absent
+
+- name: Add Terraform to PATH
+  lineinfile:
+    path: /etc/profile
+    line: "export PATH=$PATH:/usr/local/bin"
+
+- name: Terraform init
+  command: terraform init
+  args:
+    chdir: "{{ playbook_dir }}/roles/terraform_template/files/azure-tf"
+  environment:
+    ARM_CLIENT_ID: "{{ SANDBOX_ARM_CLIENT_ID }}"
+    ARM_CLIENT_SECRET: "{{ SANDBOX_ARM_CLIENT_SECRET }}"
+    ARM_SUBSCRIPTION_ID: "{{ SANDBOX_ARM_SUBSCRIPTION_ID }}"
+    ARM_TENANT_ID: "{{ SANDBOX_ARM_TENANT_ID }}"
+
+- name: Terraform destroy
+  command: terraform destroy -auto-approve
+  args:
+    chdir: "{{ playbook_dir }}/roles/terraform_template/files/azure-tf"
+  environment:
+    ARM_CLIENT_ID: "{{ SANDBOX_ARM_CLIENT_ID }}"
+    ARM_CLIENT_SECRET: "{{ SANDBOX_ARM_CLIENT_SECRET }}"
+    ARM_SUBSCRIPTION_ID: "{{ SANDBOX_ARM_SUBSCRIPTION_ID }}"
+    ARM_TENANT_ID: "{{ SANDBOX_ARM_TENANT_ID }}"

@@ -1,0 +1,42 @@
+name: deployment_pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      values:
+        description: JSON with parameters
+        type: string
+        default: "{}"
+        required: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    #runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Write input params
+        run: |
+          echo '${{ inputs.values }}' >> inputParam.json
+          cat inputParam.json
+
+      - name: JSON to variables
+        uses: antifree/json-to-variables@v1.0.1
+        with:
+          filename: "inputParam.json"
+          prefix: VAR
+
+      - name: Run playbook to apply infra
+        uses: dawidd6/action-ansible-playbook@v2
+        env:
+          NOTIFICATION_PARAM_CODE: "${{ secrets.PROVISION_PORTAL_PARAM_CODE }}"
+          NOTIFICATION_URL: "${{ secrets.PROVISION_PORTAL_NOTIFICATION_URL }}"
+          ARM_CLIENT_ID: ${{ secrets.PROVISION_PORTAL_ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.PROVISION_PORTAL_ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.PROVISION_PORTAL_ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.PROVISION_PORTAL_ARM_TENANT_ID }}
+        with:
+          playbook: deploy.yaml
+          directory: .

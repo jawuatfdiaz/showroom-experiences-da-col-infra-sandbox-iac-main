@@ -1,0 +1,18 @@
+---
+- name: Check variables and values
+  fail:
+    msg: "Variable '{{ item }}' is not defined or empty"
+  when: item not in vars
+  with_items: "{{ required_vars }}"
+
+- name: Create variables.tf file
+  template:
+    src: "templates/variables.tf.j2"
+    dest: "{{ playbook_dir }}/roles/terraform_template/files/azure-tf/variables.tf"
+    force: true
+
+- name: Create provider.tf file
+  template:
+    src: "templates/provider.tf.j2"
+    dest: "{{ playbook_dir }}/roles/terraform_template/files/azure-tf/provider.tf"
+    force: true

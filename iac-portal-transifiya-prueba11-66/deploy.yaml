@@ -1,0 +1,99 @@
+- name: SetUp infrastructure
+  hosts: localhost
+  become: true
+  
+  pre_tasks:
+    - name: Set env to playbvook vars
+      set_fact:
+        # In order to include adittional parameters from portal use VAR_ as prefix and the name of the parameter
+        # SETUP_DEPLOYMENT_REQUEST_PARAM_1: "{{ lookup('env', 'VAR_param_1') }}"
+        # Parameters from forms in portal iac
+        SETUP_DEPLOYMENT_REQUEST_COUNTRY: "{{ lookup('env', 'VAR_country') }}"
+        SETUP_DEPLOYMENT_REQUEST_COST_CENTER: "{{ lookup('env', 'VAR_costCenter') }}"
+        SETUP_DEPLOYMENT_REQUEST_CUSTOMER: "{{ lookup('env', 'VAR_customer') }}"
+        SETUP_DEPLOYMENT_REQUEST_REQUESTER: "{{ lookup('env', 'VAR_requester') }}"
+        SETUP_DEPLOYMENT_REQUEST_APPROVER: "{{ lookup('env', 'VAR_approver') }}"
+        SETUP_DEPLOYMENT_REQUEST_REPOSITORY_SOURCE_NAME: "{{ lookup('env', 'VAR_repositorySourceName') }}"
+        SETUP_DEPLOYMENT_REQUEST_REPOSITORY_TARGET_BRANCH_REF: "{{ lookup('env', 'VAR_repositoryTargetBranchRef') }}"
+        SETUP_DEPLOYMENT_REQUEST_ID: "{{ lookup('env', 'VAR_id') }}"
+        # Notification to portal from secrets in action
+        SETUP_NOTIFICATION_PARAM_CODE: "{{ lookup('env', 'NOTIFICATION_PARAM_CODE') }}"
+        SETUP_NOTIFICATION_URL: "{{ lookup('env', 'NOTIFICATION_URL') }}"
+        # Azure Auth from secrets in action
+        SETUP_SANDBOX_ARM_CLIENT_ID: "{{ lookup('env', 'ARM_CLIENT_ID') }}"
+        SETUP_SANDBOX_ARM_CLIENT_SECRET: "{{ lookup('env', 'ARM_CLIENT_SECRET') }}"
+        SETUP_SANDBOX_ARM_TENANT_ID: "{{ lookup('env', 'ARM_TENANT_ID') }}"
+        SETUP_SANDBOX_ARM_SUBSCRIPTION_ID: "{{ lookup('env', 'ARM_SUBSCRIPTION_ID') }}"
+
+    - name: Notify start event
+      uri:
+        url: "{{ SETUP_NOTIFICATION_URL }}/api/provisioning/deployment/{{ SETUP_DEPLOYMENT_REQUEST_ID }}"
+        method: PATCH
+        status_code: [200, 201]
+        body_format: json
+        headers:
+          Authorization: "{{ SETUP_NOTIFICATION_PARAM_CODE }}"
+        body:
+          status: "DEPLOYING"
+          events:
+            - date: "{{ ansible_date_time.iso8601 }}"
+              type: "INFO"
+              message: "start provisioning from github action"
+      ignore_errors: yes
+      register: notify_start
+
+    - name: Debug notify start if failed
+      debug:
+        var: notify_start.json
+      when: notify_start is failed
+
+  roles:
+
+    - role: terraform_template
+      SANDBOX_ARM_SUBSCRIPTION_ID: "{{ SETUP_SANDBOX_ARM_SUBSCRIPTION_ID }}"
+      DEPLOYMENT_REQUEST_COUNTRY: "{{ SETUP_DEPLOYMENT_REQUEST_COUNTRY }}"
+      DEPLOYMENT_REQUEST_COST_CENTER: "{{ SETUP_DEPLOYMENT_REQUEST_COST_CENTER }}"
+      DEPLOYMENT_REQUEST_CUSTOMER: "{{ SETUP_DEPLOYMENT_REQUEST_CUSTOMER }}"
+      DEPLOYMENT_REQUEST_REQUESTER: "{{ SETUP_DEPLOYMENT_REQUEST_REQUESTER }}"
+      DEPLOYMENT_REQUEST_APPROVER: "{{ SETUP_DEPLOYMENT_REQUEST_APPROVER }}"
+      DEPLOYMENT_REQUEST_REPOSITORY_SOURCE_NAME: "{{ SETUP_DEPLOYMENT_REQUEST_REPOSITORY_SOURCE_NAME }}"
+      DEPLOYMENT_REQUEST_REPOSITORY_TARGET_BRANCH_REF: "{{ SETUP_DEPLOYMENT_REQUEST_REPOSITORY_TARGET_BRANCH_REF }}"
+      DEPLOYMENT_REQUEST_ID: "{{ SETUP_DEPLOYMENT_REQUEST_ID }}"
+
+    - role: terraform_install
+      DEPLOYMENT_REQUEST_ID: "{{ SETUP_DEPLOYMENT_REQUEST_ID }}"
+      NOTIFICATION_PARAM_CODE: "{{ SETUP_NOTIFICATION_PARAM_CODE }}"
+      NOTIFICATION_URL: "{{ SETUP_NOTIFICATION_URL }}"
+      SANDBOX_ARM_CLIENT_ID: "{{ SETUP_SANDBOX_ARM_CLIENT_ID }}"
+      SANDBOX_ARM_CLIENT_SECRET: "{{ SETUP_SANDBOX_ARM_CLIENT_SECRET }}"
+      SANDBOX_ARM_TENANT_ID: "{{ SETUP_SANDBOX_ARM_TENANT_ID }}"
+      SANDBOX_ARM_SUBSCRIPTION_ID: "{{ SETUP_SANDBOX_ARM_SUBSCRIPTION_ID }}"
+
+    - role: azure_cli_commands
+      SANDBOX_ARM_CLIENT_ID: "{{ SETUP_SANDBOX_ARM_CLIENT_ID }}"
+      SANDBOX_ARM_CLIENT_SECRET: "{{ SETUP_SANDBOX_ARM_CLIENT_SECRET }}"
+      SANDBOX_ARM_TENANT_ID: "{{ SETUP_SANDBOX_ARM_TENANT_ID }}"
+      SANDBOX_ARM_SUBSCRIPTION_ID: "{{ SETUP_SANDBOX_ARM_SUBSCRIPTION_ID }}"
+
+  post_tasks:
+    - name: Notify end event
+      uri:
+        url: "{{ SETUP_NOTIFICATION_URL }}/api/provisioning/deployment/{{ SETUP_DEPLOYMENT_REQUEST_ID  }}"
+        method: PATCH
+        status_code: [200, 201]
+        body_format: json
+        headers:
+          Authorization: "{{ SETUP_NOTIFICATION_PARAM_CODE }}"
+        body:
+          status: "RUNNING"
+          events:
+            - date: "{{ ansible_date_time.iso8601 }}"
+              type: "INFO"
+              message: "done provisioning from github action"
+      ignore_errors: yes
+      register: notify_end
+
+    - name: Debug notify ends if failed
+      debug:
+        var: notify_end.json
+      when: notify_end is failed
