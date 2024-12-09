@@ -1,0 +1,34 @@
+- name: Test destroy
+  hosts: localhost
+  connection: local
+  tasks:
+  - name: Set env to playbvook vars
+    set_fact:
+      SETUP_SANDBOX_ARM_CLIENT_ID: "{{ lookup('env', 'ARM_CLIENT_ID') }}"
+      SETUP_SANDBOX_ARM_CLIENT_SECRET: "{{ lookup('env', 'ARM_CLIENT_SECRET') }}"
+      SETUP_SANDBOX_ARM_TENANT_ID: "{{ lookup('env', 'ARM_TENANT_ID') }}"
+      SETUP_SANDBOX_ARM_SUBSCRIPTION_ID: "{{ lookup('env', 'ARM_SUBSCRIPTION_ID') }}"
+
+  - name: Terraform destroy
+    command: terraform destroy -auto-approve
+    args:
+      chdir: "{{ playbook_dir }}/roles/terraform_template/files/test/azure-tf"
+    environment:
+      ARM_CLIENT_ID: "{{ SETUP_SANDBOX_ARM_CLIENT_ID }}"
+      ARM_CLIENT_SECRET: "{{ SETUP_SANDBOX_ARM_CLIENT_SECRET }}"
+      ARM_SUBSCRIPTION_ID: "{{ SETUP_SANDBOX_ARM_SUBSCRIPTION_ID }}"
+      ARM_TENANT_ID: "{{ SETUP_SANDBOX_ARM_TENANT_ID }}"
+
+  - name: collect files
+    ansible.builtin.find:
+      paths: "{{ playbook_dir }}/roles/terraform_template/files/test/azure-tf"
+      hidden: true
+      recurse: true
+      file_type: any
+    register: collected_files
+
+  - name: remove collected files
+    ansible.builtin.file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ collected_files.files }}"

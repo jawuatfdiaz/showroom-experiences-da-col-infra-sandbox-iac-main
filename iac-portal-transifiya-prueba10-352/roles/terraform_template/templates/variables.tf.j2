@@ -1,0 +1,27 @@
+variable "tags" {
+  description = "Tags for the resources"
+  type        = map(string)
+  default     = {
+    country   = "{{ DEPLOYMENT_REQUEST_COUNTRY }}"
+    tl_code     = "{{ DEPLOYMENT_REQUEST_COST_CENTER }}"
+    referenceSource = "{{ DEPLOYMENT_REQUEST_REPOSITORY_SOURCE_NAME }}"
+    referenceTargetBranch = "{{ DEPLOYMENT_REQUEST_REPOSITORY_TARGET_BRANCH_REF }}"
+    referenceDeploymentId = "{{ DEPLOYMENT_REQUEST_ID }}"
+    owner = "{{ DEPLOYMENT_REQUEST_REQUESTER }}"
+    project = "{{ DEPLOYMENT_REQUEST_REPOSITORY_SOURCE_NAME }}"
+    client = "{{ DEPLOYMENT_REQUEST_CUSTOMER }}"
+    accountable = "{{ DEPLOYMENT_REQUEST_APPROVER }}"
+  }
+}
+
+variable "name" {
+  description = "Name for infraestructure"
+  type        = string
+  default     = "{{ DEPLOYMENT_REQUEST_REPOSITORY_SOURCE_NAME }}-{{ DEPLOYMENT_REQUEST_ID }}"
+}
+
+variable "location" {
+  description = "Name for infraestructure"
+  type        = string
+  default     = "East US 2"
+}

@@ -1,0 +1,15 @@
+---
+# required vars to execute terraform template role, add the additional vars for your custom tasks
+# In order to include adittional parameters from portal use VAR_ as prefix and the name of the parameter
+# DEPLOYMENT_REQUEST_PARAM_1: "{{ lookup('env', 'VAR_param_1') }}"
+# Parameters from forms in portal iac
+required_vars:
+  - DEPLOYMENT_REQUEST_COUNTRY
+  - DEPLOYMENT_REQUEST_COST_CENTER
+  - DEPLOYMENT_REQUEST_CUSTOMER
+  - DEPLOYMENT_REQUEST_REQUESTER
+  - DEPLOYMENT_REQUEST_APPROVER
+  - DEPLOYMENT_REQUEST_REPOSITORY_SOURCE_NAME
+  - DEPLOYMENT_REQUEST_REPOSITORY_TARGET_BRANCH_REF
+  - DEPLOYMENT_REQUEST_ID
+  - SANDBOX_ARM_SUBSCRIPTION_ID

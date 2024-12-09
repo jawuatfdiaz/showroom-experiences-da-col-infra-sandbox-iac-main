@@ -1,0 +1,83 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: template-iac-sandbox
+  title: Template IaC para el portal de Sandbox 
+  description: Template IaC para el portal de Sandbox
+  tags:
+    - terraform
+spec:
+  owner: expert-architects
+  type: library
+
+  parameters:
+    - title: Datos del repositorio
+      required:
+        - name
+        - description
+        - owner
+        - org
+      properties:
+        name:
+          title: Repositorio
+          type: string
+          description: Nombre del repositorio
+          pattern: '^([a-z][a-z0-9]*)(-[a-z0-9]+)*$'
+          ui:autofocus: true
+
+        description:
+          title: Descripción
+          type: string
+          description: Descripcion del Microservicio
+
+        owner:
+          title: Responsable
+          type: string
+          description: Celula propietaria del repositorio
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              kind: Group
+
+        org:
+          title: Organización GitHub
+          type: string
+          description: Organización Git del repositorio
+          enum:
+            - nttdataCO-DA
+
+  steps:
+    - id: fetch-base
+      name: Fetch Base
+      action: fetch:template
+      input:
+        url: .
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          url: ${{ parameters.repoUrl }}
+          repoUrl: github.com?owner=${{ parameters.org }}&repo=${{ parameters.name }}
+
+    - id: publish
+      name: Publish
+      action: publish:github
+      input:
+        allowedHosts: ['github.com']
+        description: This is ${{ parameters.name }}
+        repoUrl: ${{ parameters.repoUrl }}
+  
+    - id: register
+      name: Register
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish'].output.repoContentsUrl }}
+        catalogInfoPath: '/catalog-info.yaml'
+        
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish'].output.remoteUrl }}
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps['register'].output.entityRef }}
