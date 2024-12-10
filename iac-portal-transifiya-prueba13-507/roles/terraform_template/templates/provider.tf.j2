@@ -1,0 +1,28 @@
+terraform {
+  required_providers {
+
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "=3.43.0"
+    }
+
+  }
+
+  backend "azurerm" {
+    resource_group_name  = "TFSTATE"
+    storage_account_name = "iacgralstatepocdeployer"
+    container_name       = "iac-portal-tf-state"
+    key                  = "core/backend/{{ DEPLOYMENT_REQUEST_REPOSITORY_SOURCE_NAME }}/{{ DEPLOYMENT_REQUEST_ID }}.terraform.tfstate"
+  }
+
+}
+
+provider "azurerm" {
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
+  alias           = "resources"
+  subscription_id = "{{ SANDBOX_ARM_SUBSCRIPTION_ID }}"
+}

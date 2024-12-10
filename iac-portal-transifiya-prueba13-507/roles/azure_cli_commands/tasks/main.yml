@@ -1,0 +1,57 @@
+- name: Check variables and values
+  fail:
+    msg: "Variable '{{ item }}' is not defined or empty"
+  when: item not in vars
+  with_items: "{{ required_vars }}"
+
+#Install Azure CLI
+
+- name: update packages
+  apt:
+    update_cache: yes
+  ignore_errors: yes
+
+- name: Get packages needed for the install pre - process
+  apt:
+    name: "{{ item }}"
+  with_items:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - gnupg
+    - lsb-release
+
+- name: Download and install the Microsoft signing key
+  shell: |
+    sudo mkdir -p /etc/apt/keyrings
+    curl -sLS https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/keyrings/microsoft.gpg > /dev/null
+    sudo chmod go+r /etc/apt/keyrings/microsoft.gpg
+
+- name: Add the Azure CLI software repository
+  shell: |
+    AZ_REPO=$(lsb_release -cs)
+    echo "deb [arch=`dpkg --print-architecture` signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" |
+        sudo tee /etc/apt/sources.list.d/azure-cli.list
+
+- name: update packages after repo change
+  apt:
+    update_cache: yes
+  ignore_errors: yes
+
+- name: Install azure-cli
+  apt:
+    name: "azure-cli"
+
+#Exeute Azure CLI COMMANDS
+- name: Azure login
+  command: "az login --service-principal -u {{ CLIENT_ID }} -p {{ CLIENT_SECRET }} --tenant {{ TENANT_ID }}"
+  vars:
+    CLIENT_ID: "{{ SANDBOX_ARM_CLIENT_ID }}"
+    CLIENT_SECRET: "{{ SANDBOX_ARM_CLIENT_SECRET}}"
+    TENANT_ID: "{{ SANDBOX_ARM_TENANT_ID }}"
+  register: azure_login
+
+- name: Set subscription
+  command: "az account set --subscription {{ SUBSCRIPTION_ID }}"
+  vars:
+    SUBSCRIPTION_ID: "{{ SANDBOX_ARM_SUBSCRIPTION_ID }}"

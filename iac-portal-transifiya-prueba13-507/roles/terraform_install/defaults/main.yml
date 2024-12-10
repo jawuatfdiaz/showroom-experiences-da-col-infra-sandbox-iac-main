@@ -1,0 +1,12 @@
+---
+# defaults file for terraform_install
+# Notification to portal from secrets in action
+# Azure Auth from secrets in action
+required_vars:
+  - DEPLOYMENT_REQUEST_ID
+  - NOTIFICATION_PARAM_CODE
+  - NOTIFICATION_URL
+  - SANDBOX_ARM_CLIENT_ID
+  - SANDBOX_ARM_CLIENT_SECRET
+  - SANDBOX_ARM_TENANT_ID
+  - SANDBOX_ARM_SUBSCRIPTION_ID
